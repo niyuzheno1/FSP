@@ -17,7 +17,7 @@ public:
     static Serializable ** mQueue;
     static size_t headOfQueue;
     static size_t tailOfQueue;
-    static void appendToQueue(Serializable * serializable);
+    static void appendToQueue(const Serializable * from, Serializable * serializable);
 
     static size_t pointValueCount;
     static void ** oldPointerValues;
@@ -41,7 +41,7 @@ public:
     virtual Serializable * newInstance() const;
     static Serializable ** Serializable::deserializeProcess(const InputSimulator & is, size_t & allSeriablesCount);
     static Serializable * findSerializableByType(int type);
-    static void serializeProcess(const OutputSimulator & os, Serializable ** serializables, size_t allSeriablesCount);
+    static void serializeProcess(Serializable ** serializables, size_t allSeriablesCount, const OutputSimulator & os);
 
     static void * existsOldPointerValue(void * oldPointerValue);
     static void setLogger(LoggerProto * logger);
@@ -50,6 +50,7 @@ public:
     void readPointer(const InputSimulator & is, void * & pointer);
     static void initializeAllKnownSerializableClasses();
     static size_t vSerializableType; 
+    size_t getType() const;
 
 protected:
     static LoggerProto * logger;

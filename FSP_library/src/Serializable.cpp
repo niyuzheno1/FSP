@@ -16,25 +16,35 @@ FSPMemoryInterface * Serializable::memoryInterface = nullptr;
 Serializable ** Serializable::mQueue = nullptr;
 size_t Serializable::headOfQueue = 0;
 size_t Serializable::tailOfQueue = 0;
-void Serializable::appendToQueue(Serializable * serializable){
+void Serializable::appendToQueue(const Serializable * from, Serializable * serializable){
     if(serializable == nullptr) return;
+    if(from == serializable) return;
     if(mQueue == nullptr){
         mQueue = (Serializable **)memoryInterface->allocate(sizeof(Serializable *) );
         headOfQueue = 0;   
     } else {
         mQueue = (Serializable **)memoryInterface->reallocate(mQueue, sizeof(Serializable *), tailOfQueue, tailOfQueue + 1);
     }
+    mQueue[tailOfQueue] = serializable;
     tailOfQueue++;
 }
 
-void Serializable::serializeProcess(const OutputSimulator & os, Serializable ** serializables, size_t allSeriablesCount){
+void Serializable::serializeProcess(Serializable ** serializables, size_t allSeriablesCount, const OutputSimulator & os){
     for(size_t i = 0; i < allSeriablesCount; i++){
-        appendToQueue(serializables[i]);
+        appendToQueue(nullptr, serializables[i]);
     }
     while(headOfQueue < tailOfQueue){
         Serializable * serializable = mQueue[headOfQueue];
+        for(size_t i = 0; i < headOfQueue; i++){
+            if(mQueue[i] == serializable){
+                serializable = nullptr;
+                break;
+            }
+        }
         headOfQueue++;
-        serializable->serialize(os);
+        if(serializable != nullptr){
+            serializable->serialize(os);
+        }
     }
 }
 
@@ -105,7 +115,7 @@ void * Serializable::existsOldPointerValue(void * oldPointerValue){
 void Serializable::observe(void * oldPointerValue, Serializable * serializable){
     void * newPointerValues = nullptr;
     assert(memoryInterface != nullptr);
-    if((newPointerValues = existsOldPointerValue(oldPointerValue)) == nullptr){
+    if((newPointerValues = existsOldPointerValue(oldPointerValue)) != nullptr){
         serializable->see(oldPointerValue, newPointerValues);
         return;
     }
@@ -124,6 +134,7 @@ void Serializable::observe(void * oldPointerValue, Serializable * serializable){
     }
     Serializable::observingSerializables[Serializable::observingSerializableCount] = serializable;
     Serializable::observingSerializableOldPointerValues[Serializable::observingSerializableCount] = oldPointerValue;
+    Serializable::observingSerializableCount++;
 }
 void Serializable::see(void * oldPointerValue, void * newPointerValue){
     if(this->logger == nullptr) return;
@@ -200,4 +211,8 @@ void Serializable::setLogger(LoggerProto * logger){
 //setMemoryInterface
 void Serializable::setMemoryInterface(FSPMemoryInterface * memoryInterface){
     Serializable::memoryInterface = memoryInterface;
+}
+
+size_t Serializable::getType() const{
+    return this->mSerializableType;
 }
