@@ -12,12 +12,39 @@ void ** Serializable::observingSerializableOldPointerValues = nullptr;
 size_t Serializable::vSerializableType = 0;
 LoggerProto * Serializable::logger = nullptr;
 FSPMemoryInterface * Serializable::memoryInterface = nullptr;
-Serializable::Serializable(){
-    if(vSerializableType == 0){
-        vSerializableType = registerSerializable(vSerializableType, this);
+
+Serializable ** Serializable::mQueue = nullptr;
+size_t Serializable::headOfQueue = 0;
+size_t Serializable::tailOfQueue = 0;
+void Serializable::appendToQueue(Serializable * serializable){
+    if(serializable == nullptr) return;
+    if(mQueue == nullptr){
+        mQueue = (Serializable **)memoryInterface->allocate(sizeof(Serializable *) );
+        headOfQueue = 0;   
+    } else {
+        mQueue = (Serializable **)memoryInterface->reallocate(mQueue, sizeof(Serializable *), tailOfQueue, tailOfQueue + 1);
     }
+    tailOfQueue++;
+}
+
+void Serializable::serializeProcess(const OutputSimulator & os, Serializable ** serializables, size_t allSeriablesCount){
+    for(size_t i = 0; i < allSeriablesCount; i++){
+        appendToQueue(serializables[i]);
+    }
+    while(headOfQueue < tailOfQueue){
+        Serializable * serializable = mQueue[headOfQueue];
+        headOfQueue++;
+        serializable->serialize(os);
+    }
+}
+
+Serializable::Serializable(){
+    //please call Serializable::initializeAllKnownSerializableClasses() 
+    // if(vSerializableType == 0){
+    //     vSerializableType = registerSerializable(vSerializableType, this);
+    // }
+    
     this->mSerializableType = vSerializableType;   
-     
 }
 size_t Serializable::registerSerializable(size_t type, Serializable * serializable){
     if(type != 0)  return type;
@@ -105,12 +132,12 @@ void Serializable::see(void * oldPointerValue, void * newPointerValue){
     sprintf_s(tmp, "Serializable::see: %p, %p", oldPointerValue, newPointerValue);
     this->logger->log(tmp);
 }
-void Serializable::serialize(const Simulator & os) const{
+void Serializable::serialize(const OutputSimulator & os) const{
     
     os((void*)&this->mSerializableType, sizeof(int));
     writePointer(os, (void*) this);
 }
-bool Serializable::deserialize(const Simulator & is) {
+bool Serializable::deserialize(const InputSimulator & is) {
     void * tmp = nullptr;
     readPointer(is, tmp);
     if(tmp == (void*)-1)  return false;
@@ -118,28 +145,28 @@ bool Serializable::deserialize(const Simulator & is) {
     return true;
 }
 
-void Serializable::writePointer(const Simulator & os, void * pointer) const{
+void Serializable::writePointer(const OutputSimulator & os, void * pointer) const{
     unsigned long long tthis = ~(unsigned long long)pointer;
     os(&tthis, sizeof(unsigned long long *));
 }
-void Serializable::readPointer(const Simulator & is, void * & pointer){
+void Serializable::readPointer(const InputSimulator & is, void * & pointer){
     unsigned long long tthis = 0;
     is(&tthis, sizeof(unsigned long long *));
     if(tthis == -1){
-        pointer = (void*)-1;
+        pointer = (void*) nullptr;
         return;
     }
     pointer = (void *) tthis;
 }
 
-Serializable ** Serializable::deserializeProcess(const Simulator & is, size_t & allSeriablesCount){
+Serializable ** Serializable::deserializeProcess(const InputSimulator & is, size_t & allSeriablesCount){
     Serializable ** allSeriables = nullptr;
     int type = 0;
     while(true){
         is((char*)&type, sizeof(int));
         if(type == -1) break;
         Serializable * serializable = Serializable::findSerializableByType(type);
-        if(serializable == nullptr) break;
+        assert(serializable != nullptr); // we have to register appropriate serializable class
         Serializable * newInstance = serializable->newInstance();
         //append to allSeriables
         if(allSeriablesCount == 0){
