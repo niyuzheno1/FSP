@@ -1,26 +1,34 @@
 #include "FSP/export.h"
-#include "FSPMemoryInstance.h"
 #include "StringSerializable.h"
-FSPMemoryInstance memoryInstance;
+#include "MMS/export.h"
+using namespace MMS;
+SimpleMemoryManageInstance memoryInstance;
+SophiscatedMMInstance _memoryInstance;
 char tmpx[100];
 size_t tsz;
 #include "assert.h"
 #include "Node.h"
-
+char ttmp[100 * 1024 * 1024];
+GenericMemoryManager * gmm;
 void Serializable::initializeAllKnownSerializableClasses()
 {
-    Serializable::setMemoryInterface(&memoryInstance);
+    _memoryInstance.setInit([&](void **x){
+        *x = ttmp;
+    });
+    _memoryInstance.memInit();
+    gmm = &_memoryInstance;
+    Serializable::setMemoryInterface(gmm);
     // Serializable::setLogger(&logger);
 
     // register serializable
-    Serializable *serializable = memoryInstance.newInstance<Serializable>();
+    Serializable *serializable = gmm->newInstance<Serializable>();
     serializable->vSerializableType = registerSerializable(vSerializableType, serializable);
 
     // register SString
-    SString *sString = memoryInstance.newInstance<SString>();
+    SString *sString = gmm->newInstance<SString>();
     sString->vSStringType = registerSerializable(SString::vSStringType, sString);
 
-    Node * node = memoryInstance.newInstance<Node>();
+    Node * node = gmm->newInstance<Node>();
     node->vNodeType = registerSerializable(Node::vNodeType, node);
 }
 

@@ -1,7 +1,8 @@
 #pragma once
 #include <functional>
 #include "LoggerProto.h"
-#include "FSPMemoryInterface.h"
+
+#include "MMS/export.h"
 
 //Note: This is c++11 feature and is not supported by all compilers
 //Note: simulator's writing into the file depends on the endianness of the machine
@@ -45,7 +46,7 @@ public:
 
     static void * existsOldPointerValue(void * oldPointerValue);
     static void setLogger(LoggerProto * logger);
-    static void setMemoryInterface(FSPMemoryInterface * memoryInterface);
+    static void setMemoryInterface(MMS::GenericMemoryManager * memoryInterface);
     void writePointer(const OutputSimulator & os, void * pointer) const;
     void readPointer(const InputSimulator & is, void * & pointer);
     static void initializeAllKnownSerializableClasses();
@@ -55,6 +56,6 @@ public:
 protected:
     static LoggerProto * logger;
     size_t mSerializableType;
-    static FSPMemoryInterface * memoryInterface;
+    static MMS::GenericMemoryManager * memoryInterface;
 
 };

@@ -1,5 +1,6 @@
-#include "FSP.h"
+#include "Serializable.h"
 #include "assert.h"
+using namespace MMS;
 size_t Serializable::pointValueCount = 0;
 void ** Serializable::oldPointerValues = nullptr;
 void ** Serializable::newPointerValues = nullptr;
@@ -11,7 +12,7 @@ Serializable ** Serializable::observingSerializables = nullptr;
 void ** Serializable::observingSerializableOldPointerValues = nullptr;
 size_t Serializable::vSerializableType = 0;
 LoggerProto * Serializable::logger = nullptr;
-FSPMemoryInterface * Serializable::memoryInterface = nullptr;
+GenericMemoryManager * Serializable::memoryInterface = nullptr;
 
 Serializable ** Serializable::mQueue = nullptr;
 size_t Serializable::headOfQueue = 0;
@@ -209,7 +210,7 @@ void Serializable::setLogger(LoggerProto * logger){
     Serializable::logger = logger;
 }
 //setMemoryInterface
-void Serializable::setMemoryInterface(FSPMemoryInterface * memoryInterface){
+void Serializable::setMemoryInterface(GenericMemoryManager * memoryInterface){
     Serializable::memoryInterface = memoryInterface;
 }
 
